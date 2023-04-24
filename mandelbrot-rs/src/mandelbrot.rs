@@ -1,6 +1,6 @@
 pub struct Complex {
-    re: f64,
-    im: f64,
+    pub re: f64,
+    pub im: f64,
 }
 
 impl ToString for Complex {
@@ -41,7 +41,6 @@ impl Complex {
         }
         let bound_sq = bound.powf(2.);
         let mut z_iter = z_0;
-        let iter: isize = 1;
         for iter in 1..=max_iters {
             z_iter = z_iter.mandelbrot_iter(self);
             if z_iter.abs_value_sq() > bound_sq {
