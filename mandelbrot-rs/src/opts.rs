@@ -41,7 +41,9 @@ impl Resolution {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum PlottingAlgorithm {
     Vanilla,
+    Smooth,
     Histogram,
+    SmoothHistogram,
 }
 
 #[derive(Subcommand, Debug)]
@@ -65,10 +67,37 @@ pub fn get_hue_array(args: &Cli) -> Vec<Vec<f64>> {
     let (x_range, y_range) = match args.command {
         Commands::Centre { x, y, zoom } => get_intervals(Complex::new(x, y), zoom as f64),
     };
-    let escape_counts = generate_escape_counts(&x_range, &y_range, width, height, args.max_iters);
+    let escape_counts = match args.algorithm {
+        PlottingAlgorithm::Histogram | PlottingAlgorithm::Vanilla => generate_escape_counts(
+            &x_range,
+            &y_range,
+            width,
+            height,
+            args.max_iters,
+            |escape_count, _| escape_count,
+        ),
+        PlottingAlgorithm::Smooth | PlottingAlgorithm::SmoothHistogram => generate_escape_counts(
+            &x_range,
+            &y_range,
+            width,
+            height,
+            args.max_iters,
+            |escape_count, escape_val| {
+                if escape_count < args.max_iters {
+                    let nu = (escape_val.abs_value_sq().log2() / 2.).log2();
+                    ((escape_count + 1) as f64 - nu) as usize
+                } else {
+                    args.max_iters
+                }
+            },
+        ),
+    };
+
     match args.algorithm {
-        PlottingAlgorithm::Vanilla => normalise_escape_counts(&escape_counts, args.max_iters),
-        PlottingAlgorithm::Histogram => {
+        PlottingAlgorithm::Vanilla | PlottingAlgorithm::Smooth => {
+            normalise_escape_counts(&escape_counts, args.max_iters)
+        }
+        PlottingAlgorithm::Histogram | PlottingAlgorithm::SmoothHistogram => {
             generate_hist_counts(&escape_counts, args.max_iters, width * height)
         }
     }

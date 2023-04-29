@@ -43,29 +43,33 @@ impl Complex {
         Self::new(self.re / norm, -self.im / norm)
     }
 
-    pub fn escape_count(&self, z_0: Self, bound: f64, max_iters: usize) -> usize {
+    pub fn escape_count(&self, z_0: Self, bound: f64, max_iters: usize) -> (usize, Self) {
         if z_0.abs_value_sq() > bound {
-            return 0;
+            return (0, z_0);
         }
         let bound_sq = bound.powf(2.);
         let mut z_iter = z_0;
         for iter in 1..=max_iters {
             z_iter = z_iter.mandelbrot_iter(self);
             if z_iter.abs_value_sq() > bound_sq {
-                return iter;
+                return (iter, z_iter);
             }
         }
-        return max_iters;
+        return (max_iters, z_iter);
     }
 }
 
-pub fn generate_escape_counts(
+pub fn generate_escape_counts<F>(
     x_range: &Interval,
     y_range: &Interval,
     width: usize,
     height: usize,
     max_iters: usize,
-) -> Vec<Vec<usize>> {
+    post_fn: F,
+) -> Vec<Vec<usize>>
+where
+    F: Fn(usize, Complex) -> usize + std::marker::Sync,
+{
     (0..width)
         .into_par_iter()
         .map(|x| {
@@ -75,7 +79,8 @@ pub fn generate_escape_counts(
                     let re = lerp(x_range, x as f64 / width as f64);
                     let im = lerp(y_range, y as f64 / height as f64);
                     let c = Complex::new(re, im);
-                    c.escape_count(Complex::id(), 2., max_iters)
+                    let (escape_count, escape_num) = c.escape_count(Complex::id(), 2., max_iters);
+                    post_fn(escape_count, escape_num)
                 })
                 .collect()
         })
