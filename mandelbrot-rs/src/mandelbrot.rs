@@ -59,6 +59,7 @@ pub fn generate_escape_counts(
     y_range: &Interval,
     width: usize,
     height: usize,
+    max_iters: usize,
 ) -> Vec<Vec<usize>> {
     (0..width)
         .into_par_iter()
@@ -69,7 +70,7 @@ pub fn generate_escape_counts(
                     let re = lerp(x_range, x as f64 / width as f64);
                     let im = lerp(y_range, y as f64 / height as f64);
                     let c = Complex::new(re, im);
-                    c.escape_count(Complex::id(), 2., 2000)
+                    c.escape_count(Complex::id(), 2., max_iters)
                 })
                 .collect()
         })
@@ -86,9 +87,10 @@ pub fn generate_hist_counts(
         col.iter()
             .for_each(|&count| pixels_per_iter[count as usize] += 1)
     });
+
     let iter_hist: Vec<usize> = (0..=max_iters)
         .into_par_iter()
-        .map(|iter| pixels_per_iter[0..=iter].iter().sum())
+        .map(|iter| pixels_per_iter[0..=iter].par_iter().sum())
         .collect();
 
     escape_counts

@@ -1,4 +1,3 @@
-use anyhow::Context;
 use anyhow::Result;
 use image::{ImageBuffer, Rgb};
 use mandelbrot_rs::mandelbrot::generate_escape_counts;
@@ -7,7 +6,7 @@ use mandelbrot_rs::opts::parse_args;
 use mandelbrot_rs::palette::ColorPalette;
 
 fn main() -> Result<()> {
-    let config = parse_args().context("problem parsing config")?;
+    let config = parse_args();
     eprintln!("config = {:?}", config);
     let palette = ColorPalette::new(vec![
         (0., Rgb([0, 18, 25])),
@@ -24,8 +23,13 @@ fn main() -> Result<()> {
         &config.y_range,
         config.width,
         config.height,
+        config.max_iters,
     );
-    let hist_counts = generate_hist_counts(&escape_counts, 2000, config.width * config.height);
+    let hist_counts = generate_hist_counts(
+        &escape_counts,
+        config.max_iters,
+        config.width * config.height,
+    );
     let img = ImageBuffer::from_fn(config.width as u32, config.height as u32, |x, y| {
         let &frac = hist_counts
             .get(x as usize)

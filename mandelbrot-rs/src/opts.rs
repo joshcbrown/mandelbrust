@@ -1,17 +1,37 @@
 use crate::mandelbrot::Complex;
-use anyhow::{anyhow, Result};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// filepath to save the output image to
-    #[arg(short, long)]
-    out_file: Option<String>,
-    #[arg(short, long)]
-    resolution: Option<String>,
+    #[arg(short, long, default_value = "mandelbrot.png")]
+    out_file: String,
+    /// number of iterations to perform before deciding if a point is in the set
+    #[arg(short, long, default_value_t = 2000)]
+    max_iters: usize,
+    /// resolution of the output image.
+    #[arg(value_enum, default_value_t = Resolution::High)]
+    resolution: Resolution,
     #[command(subcommand)]
     command: Commands,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum Resolution {
+    Low,
+    Med,
+    High,
+}
+
+impl Resolution {
+    fn to_dimensions(self) -> (usize, usize) {
+        match self {
+            Resolution::Low => (320, 180),
+            Resolution::Med => (960, 540),
+            Resolution::High => (1920, 1080),
+        }
+    }
 }
 
 #[derive(Subcommand, Debug)]
@@ -27,6 +47,7 @@ pub struct Config {
     pub out_file: String,
     pub width: usize,
     pub height: usize,
+    pub max_iters: usize,
 }
 
 #[derive(Debug)]
@@ -35,28 +56,23 @@ pub struct Interval {
     pub upper: f64,
 }
 
-pub fn parse_args() -> Result<Config> {
+pub fn parse_args() -> Config {
     let args = Cli::parse();
-    let out_file = args.out_file.unwrap_or("penis.png".into());
-    let (width, height): (usize, usize) = match args.resolution.unwrap_or("high".into()).as_str() {
-        "low" => Ok((320, 180)),
-        "med" => Ok((960, 540)),
-        "high" => Ok((1920, 1080)),
-        _ => Err(anyhow!("resolution must be one of low, med, or high.")),
-    }?;
+    let (width, height): (usize, usize) = args.resolution.to_dimensions();
     match args.command {
         Commands::Centre { x, y, zoom } => {
             let zoom = zoom.unwrap_or(8);
             let centre = Complex::new(x, y);
             let (x_range, y_range) = get_intervals(centre, zoom as f64);
-            Ok(Config {
+            Config {
                 x_range,
                 y_range,
                 zoom,
-                out_file,
+                out_file: args.out_file,
                 width,
                 height,
-            })
+                max_iters: args.max_iters,
+            }
         }
     }
 }
