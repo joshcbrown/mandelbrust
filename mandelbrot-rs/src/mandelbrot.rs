@@ -38,7 +38,7 @@ impl Complex {
         self.re * self.re + self.im * self.im
     }
 
-    pub fn escape_count(&self, z_0: Self, bound: f64, max_iters: isize) -> isize {
+    pub fn escape_count(&self, z_0: Self, bound: f64, max_iters: usize) -> usize {
         if z_0.abs_value_sq() > bound {
             return 0;
         }
@@ -57,9 +57,9 @@ impl Complex {
 pub fn generate_escape_counts(
     x_range: &Interval,
     y_range: &Interval,
-    width: u32,
-    height: u32,
-) -> Vec<Vec<isize>> {
+    width: usize,
+    height: usize,
+) -> Vec<Vec<usize>> {
     (0..width)
         .into_par_iter()
         .map(|x| {
@@ -71,6 +71,31 @@ pub fn generate_escape_counts(
                     let c = Complex::new(re, im);
                     c.escape_count(Complex::id(), 2., 2000)
                 })
+                .collect()
+        })
+        .collect()
+}
+
+pub fn generate_hist_counts(
+    escape_counts: &Vec<Vec<usize>>,
+    max_iters: usize,
+    total_points: usize,
+) -> Vec<Vec<f64>> {
+    let pixels_per_iter: &mut Vec<usize> = &mut vec![0; max_iters + 1];
+    escape_counts.iter().for_each(|col| {
+        col.iter()
+            .for_each(|&count| pixels_per_iter[count as usize] += 1)
+    });
+    let iter_hist: Vec<usize> = (0..=max_iters)
+        .into_par_iter()
+        .map(|iter| pixels_per_iter[0..=iter].iter().sum())
+        .collect();
+
+    escape_counts
+        .into_par_iter()
+        .map(|col| {
+            col.into_par_iter()
+                .map(|&count| iter_hist[count] as f64 / total_points as f64)
                 .collect()
         })
         .collect()

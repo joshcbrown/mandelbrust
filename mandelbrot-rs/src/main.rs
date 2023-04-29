@@ -1,12 +1,13 @@
+use anyhow::Context;
 use anyhow::Result;
 use image::{ImageBuffer, Rgb};
 use mandelbrot_rs::mandelbrot::generate_escape_counts;
-use mandelbrot_rs::mandelbrot::Complex;
-use mandelbrot_rs::opts::{parse_args, Interval};
+use mandelbrot_rs::mandelbrot::generate_hist_counts;
+use mandelbrot_rs::opts::parse_args;
 use mandelbrot_rs::palette::ColorPalette;
 
 fn main() -> Result<()> {
-    let config = parse_args();
+    let config = parse_args().context("problem parsing config")?;
     eprintln!("config = {:?}", config);
     let palette = ColorPalette::new(vec![
         (0., Rgb([0, 18, 25])),
@@ -18,20 +19,19 @@ fn main() -> Result<()> {
         (1., Rgb([0, 0, 0])),
     ])
     .unwrap();
-    let (width, height) = (1920, 1080);
-    let escape_counts = generate_escape_counts(&config.x_range, &config.y_range, width, height);
-    eprintln!(
-        "{}, {}",
-        escape_counts.len(),
-        escape_counts.get(0).unwrap().len()
+    let escape_counts = generate_escape_counts(
+        &config.x_range,
+        &config.y_range,
+        config.width,
+        config.height,
     );
-    let img = ImageBuffer::from_fn(width, height, |x, y| {
-        let &escape_count = escape_counts
+    let hist_counts = generate_hist_counts(&escape_counts, 2000, config.width * config.height);
+    let img = ImageBuffer::from_fn(config.width as u32, config.height as u32, |x, y| {
+        let &frac = hist_counts
             .get(x as usize)
             .unwrap()
             .get(y as usize)
             .unwrap();
-        let frac = escape_count as f64 / 2000.;
         palette.value(frac)
     });
     img.save(config.out_file)?;
