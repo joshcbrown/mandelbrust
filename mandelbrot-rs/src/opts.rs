@@ -74,7 +74,7 @@ pub fn get_hue_array(args: &Cli) -> Vec<Vec<f64>> {
             width,
             height,
             args.max_iters,
-            |escape_count, _| escape_count,
+            |escape_count, _| escape_count as f64,
         ),
         PlottingAlgorithm::Smooth | PlottingAlgorithm::SmoothHistogram => generate_escape_counts(
             &x_range,
@@ -85,9 +85,9 @@ pub fn get_hue_array(args: &Cli) -> Vec<Vec<f64>> {
             |escape_count, escape_val| {
                 if escape_count < args.max_iters {
                     let nu = (escape_val.abs_value_sq().log2() / 2.).log2();
-                    ((escape_count + 1) as f64 - nu) as usize
+                    (escape_count + 1) as f64 - nu
                 } else {
-                    args.max_iters
+                    args.max_iters as f64
                 }
             },
         ),

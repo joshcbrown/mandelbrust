@@ -26,6 +26,9 @@ impl ColorPalette {
     }
 
     pub fn value(&self, value: f64) -> Rgb<u8> {
+        if value > 1. {
+            return self.colors.last().unwrap().1;
+        }
         match self
             .colors
             .binary_search_by(|&(v, _)| v.partial_cmp(&value).unwrap())

@@ -66,9 +66,9 @@ pub fn generate_escape_counts<F>(
     height: usize,
     max_iters: usize,
     post_fn: F,
-) -> Vec<Vec<usize>>
+) -> Vec<Vec<f64>>
 where
-    F: Fn(usize, Complex) -> usize + std::marker::Sync,
+    F: Fn(usize, Complex) -> f64 + std::marker::Sync,
 {
     (0..width)
         .into_par_iter()
@@ -87,19 +87,19 @@ where
         .collect()
 }
 
-pub fn normalise_escape_counts(escape_counts: &Vec<Vec<usize>>, max_iters: usize) -> Vec<Vec<f64>> {
+pub fn normalise_escape_counts(escape_counts: &Vec<Vec<f64>>, max_iters: usize) -> Vec<Vec<f64>> {
     escape_counts
         .into_par_iter()
         .map(|col| {
             col.into_par_iter()
-                .map(|&val| val as f64 / max_iters as f64)
+                .map(|&val| val / max_iters as f64)
                 .collect()
         })
         .collect()
 }
 
 pub fn generate_hist_counts(
-    escape_counts: &Vec<Vec<usize>>,
+    escape_counts: &Vec<Vec<f64>>,
     max_iters: usize,
     total_points: usize,
 ) -> Vec<Vec<f64>> {
@@ -118,10 +118,16 @@ pub fn generate_hist_counts(
         .into_par_iter()
         .map(|col| {
             col.into_par_iter()
-                .map(|&count| iter_hist[count] as f64 / total_points as f64)
+                .map(|&count| {
+                    (iter_hist[count as usize] as f64 + decimal_part(count)) / total_points as f64
+                })
                 .collect()
         })
         .collect()
+}
+
+fn decimal_part(float: f64) -> f64 {
+    float - (float as usize) as f64
 }
 
 fn lerp(interval: &Interval, frac: f64) -> f64 {
