@@ -1,31 +1,35 @@
 use crate::mandelbrot::Complex;
+use crate::mandelbrot::{generate_escape_counts, generate_hist_counts, normalise_escape_counts};
 use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-struct Cli {
+pub struct Cli {
     /// filepath to save the output image to
     #[arg(short, long, default_value = "mandelbrot.png")]
-    out_file: String,
+    pub out_file: String,
     /// number of iterations to perform before deciding if a point is in the set
     #[arg(short, long, default_value_t = 2000)]
     max_iters: usize,
     /// resolution of the output image.
     #[arg(value_enum, default_value_t = Resolution::High)]
-    resolution: Resolution,
+    pub resolution: Resolution,
+    /// algorithm to plot the image using
+    #[arg(value_enum, default_value_t = PlottingAlgorithm::Histogram)]
+    algorithm: PlottingAlgorithm,
     #[command(subcommand)]
     command: Commands,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum Resolution {
+pub enum Resolution {
     Low,
     Med,
     High,
 }
 
 impl Resolution {
-    fn to_dimensions(self) -> (usize, usize) {
+    pub fn to_dimensions(self) -> (usize, usize) {
         match self {
             Resolution::Low => (320, 180),
             Resolution::Med => (960, 540),
@@ -34,20 +38,20 @@ impl Resolution {
     }
 }
 
-#[derive(Subcommand, Debug)]
-enum Commands {
-    Centre { x: f64, y: f64, zoom: Option<usize> },
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum PlottingAlgorithm {
+    Vanilla,
+    Histogram,
 }
 
-#[derive(Debug)]
-pub struct Config {
-    pub x_range: Interval,
-    pub y_range: Interval,
-    pub zoom: usize,
-    pub out_file: String,
-    pub width: usize,
-    pub height: usize,
-    pub max_iters: usize,
+#[derive(Subcommand, Debug)]
+enum Commands {
+    Centre {
+        x: f64,
+        y: f64,
+        #[arg(short, long, default_value_t = 8)]
+        zoom: usize,
+    },
 }
 
 #[derive(Debug)]
@@ -56,23 +60,16 @@ pub struct Interval {
     pub upper: f64,
 }
 
-pub fn parse_args() -> Config {
-    let args = Cli::parse();
+pub fn get_hue_array(args: &Cli) -> Vec<Vec<f64>> {
     let (width, height): (usize, usize) = args.resolution.to_dimensions();
-    match args.command {
-        Commands::Centre { x, y, zoom } => {
-            let zoom = zoom.unwrap_or(8);
-            let centre = Complex::new(x, y);
-            let (x_range, y_range) = get_intervals(centre, zoom as f64);
-            Config {
-                x_range,
-                y_range,
-                zoom,
-                out_file: args.out_file,
-                width,
-                height,
-                max_iters: args.max_iters,
-            }
+    let (x_range, y_range) = match args.command {
+        Commands::Centre { x, y, zoom } => get_intervals(Complex::new(x, y), zoom as f64),
+    };
+    let escape_counts = generate_escape_counts(&x_range, &y_range, width, height, args.max_iters);
+    match args.algorithm {
+        PlottingAlgorithm::Vanilla => normalise_escape_counts(&escape_counts, args.max_iters),
+        PlottingAlgorithm::Histogram => {
+            generate_hist_counts(&escape_counts, args.max_iters, width * height)
         }
     }
 }

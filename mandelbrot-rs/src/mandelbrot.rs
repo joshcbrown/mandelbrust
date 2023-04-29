@@ -38,6 +38,11 @@ impl Complex {
         self.re * self.re + self.im * self.im
     }
 
+    pub fn inverse(self) -> Self {
+        let norm = self.abs_value_sq();
+        Self::new(self.re / norm, -self.im / norm)
+    }
+
     pub fn escape_count(&self, z_0: Self, bound: f64, max_iters: usize) -> usize {
         if z_0.abs_value_sq() > bound {
             return 0;
@@ -72,6 +77,17 @@ pub fn generate_escape_counts(
                     let c = Complex::new(re, im);
                     c.escape_count(Complex::id(), 2., max_iters)
                 })
+                .collect()
+        })
+        .collect()
+}
+
+pub fn normalise_escape_counts(escape_counts: &Vec<Vec<usize>>, max_iters: usize) -> Vec<Vec<f64>> {
+    escape_counts
+        .into_par_iter()
+        .map(|col| {
+            col.into_par_iter()
+                .map(|&val| val as f64 / max_iters as f64)
                 .collect()
         })
         .collect()
