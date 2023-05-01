@@ -120,14 +120,15 @@ pub fn generate_hist_counts(
         .map(|col| {
             col.into_par_iter()
                 .map(|&count| {
-                    if (count as usize) < max_iters {
+                    let floored_count = count as usize;
+                    if (floored_count) < max_iters {
                         let interval = Interval {
-                            lower: iter_hist[count as usize] as f64,
-                            upper: iter_hist[count as usize + 1] as f64,
+                            lower: iter_hist[floored_count] as f64,
+                            upper: iter_hist[floored_count + 1] as f64,
                         };
                         interval.lerp(decimal_part(count)) / total_points
                     } else {
-                        iter_hist[count as usize] as f64 / total_points
+                        iter_hist[floored_count] as f64 / total_points
                     }
                 })
                 .collect()

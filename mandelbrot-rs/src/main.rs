@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::{Context, Result};
 use clap::Parser;
 use image::{ImageBuffer, Rgb};
@@ -22,6 +24,7 @@ fn main() -> Result<()> {
         let &frac = hue_array.get(x as usize).unwrap().get(y as usize).unwrap();
         palette.value(frac)
     });
-    img.save(args.out_file).context("problem saving image")?;
+    let path = Path::new("out/").join(&args.out_file);
+    img.save(path).context("problem saving image")?;
     Ok(())
 }
