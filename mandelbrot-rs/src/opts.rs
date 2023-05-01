@@ -61,6 +61,11 @@ pub struct Interval {
     pub lower: f64,
     pub upper: f64,
 }
+impl Interval {
+    pub fn lerp(&self, frac: f64) -> f64 {
+        self.lower + (self.upper - self.lower) * frac
+    }
+}
 
 pub fn get_hue_array(args: &Cli) -> Vec<Vec<f64>> {
     let (width, height): (usize, usize) = args.resolution.to_dimensions();

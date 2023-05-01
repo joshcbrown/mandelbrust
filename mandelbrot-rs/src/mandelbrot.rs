@@ -76,8 +76,8 @@ where
             (0..height)
                 .into_par_iter()
                 .map(|y| {
-                    let re = lerp(x_range, x as f64 / width as f64);
-                    let im = lerp(y_range, y as f64 / height as f64);
+                    let re = x_range.lerp(x as f64 / width as f64);
+                    let im = y_range.lerp(y as f64 / height as f64);
                     let c = Complex::new(re, im);
                     let (escape_count, escape_num) = c.escape_count(Complex::id(), 2., max_iters);
                     post_fn(escape_count, escape_num)
@@ -114,12 +114,21 @@ pub fn generate_hist_counts(
         .map(|iter| pixels_per_iter[0..=iter].par_iter().sum())
         .collect();
 
+    let total_points = total_points as f64;
     escape_counts
         .into_par_iter()
         .map(|col| {
             col.into_par_iter()
                 .map(|&count| {
-                    (iter_hist[count as usize] as f64 + decimal_part(count)) / total_points as f64
+                    if (count as usize) < max_iters {
+                        let interval = Interval {
+                            lower: iter_hist[count as usize] as f64,
+                            upper: iter_hist[count as usize + 1] as f64,
+                        };
+                        interval.lerp(decimal_part(count)) / total_points
+                    } else {
+                        iter_hist[count as usize] as f64 / total_points
+                    }
                 })
                 .collect()
         })
@@ -128,8 +137,4 @@ pub fn generate_hist_counts(
 
 fn decimal_part(float: f64) -> f64 {
     float - (float as usize) as f64
-}
-
-fn lerp(interval: &Interval, frac: f64) -> f64 {
-    interval.lower + (interval.upper - interval.lower) * frac
 }
