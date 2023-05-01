@@ -8,5 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.69"
 clap = { version = "4.2.4", features = ["derive"] }
+serde = {version = "1.0", features = ["derive"]}
+serde_yaml = "0.9"
 image = "0.24.5"
 rayon = "1.7.0"

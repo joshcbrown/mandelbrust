@@ -1,6 +1,8 @@
 use crate::opts::Interval;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Complex {
     pub re: f64,
     pub im: f64,

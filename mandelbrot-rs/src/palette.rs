@@ -1,50 +1,91 @@
+use crate::opts::Interval;
+use anyhow::{anyhow, Result};
 use image::Rgb;
+use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ColorPalette {
-    colors: Vec<(f64, Rgb<u8>)>,
+    pub name: String,
+    color_vals: Vec<ConfigRGB>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct ConfigRGB {
+    pub value: f64,
+    // NOTE: this makes the yaml code really verbose, ideally would like to change this into
+    // [red, green, blue] in a vec or hex code
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
+impl ConfigRGB {
+    pub fn to_rgb(&self) -> Rgb<u8> {
+        Rgb([self.red, self.green, self.blue])
+    }
+
+    pub fn lerp(&self, o: &Self, value: f64) -> Rgb<u8> {
+        let r_interval = Interval {
+            lower: self.red as f64,
+            upper: o.red as f64,
+        };
+        let g_interval = Interval {
+            lower: self.green as f64,
+            upper: o.green as f64,
+        };
+        let b_interval = Interval {
+            lower: self.blue as f64,
+            upper: o.blue as f64,
+        };
+        let frac = (value - self.value) / (o.value - self.value);
+
+        Rgb([
+            r_interval.lerp(frac) as u8,
+            g_interval.lerp(frac) as u8,
+            b_interval.lerp(frac) as u8,
+        ])
+    }
 }
 
 impl ColorPalette {
-    pub fn new(colors: Vec<(f64, Rgb<u8>)>) -> Option<ColorPalette> {
-        if colors.is_empty() {
-            return None;
+    pub fn new(color_vals: Vec<ConfigRGB>, name: String) -> Result<ColorPalette> {
+        if color_vals.len() < 2 {
+            return Err(anyhow!("need color vals"));
         }
 
-        let mut sorted_colors = colors;
-        sorted_colors.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        let mut sorted_colors = color_vals;
+        sorted_colors.sort_by(|a, b| a.value.partial_cmp(&b.value).unwrap());
 
-        let first = sorted_colors.first().unwrap().0;
-        let last = sorted_colors.last().unwrap().0;
+        let first = sorted_colors
+            .first()
+            .expect("more than 2 vals is an assertion")
+            .value;
+        let last = sorted_colors.last().unwrap().value;
 
         if first != 0.0 || last != 1.0 {
-            return None;
+            return Err(anyhow!("need vals for 0.0 and 1.0"));
         }
 
-        Some(ColorPalette {
-            colors: sorted_colors,
+        Ok(ColorPalette {
+            name,
+            color_vals: sorted_colors,
         })
     }
 
     pub fn value(&self, value: f64) -> Rgb<u8> {
         if value > 1. {
-            return self.colors.last().unwrap().1;
+            return self.color_vals.last().unwrap().to_rgb();
         }
+
         match self
-            .colors
-            .binary_search_by(|&(v, _)| v.partial_cmp(&value).unwrap())
+            .color_vals
+            .binary_search_by(|&color| color.value.partial_cmp(&value).unwrap())
         {
-            Ok(i) => self.colors[i].1,
+            Ok(i) => self.color_vals[i].to_rgb(),
             Err(i) => {
-                let (v1, c1) = self.colors[i - 1];
-                let (v2, c2) = self.colors[i];
-
-                let t = (value - v1) / (v2 - v1);
-
-                let r = c1[0] + (t * (c2[0] as f64 - c1[0] as f64)) as u8;
-                let g = c1[1] + (t * (c2[1] as f64 - c1[1] as f64)) as u8;
-                let b = c1[2] + (t * (c2[2] as f64 - c1[2] as f64)) as u8;
-
-                Rgb([r, g, b])
+                let c1 = self.color_vals[i - 1];
+                let c2 = self.color_vals[i];
+                c1.lerp(&c2, value)
             }
         }
     }
