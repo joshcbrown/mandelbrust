@@ -22,13 +22,23 @@ impl Configuration {
         serde_yaml::from_reader(file).context("problem reading yaml")
     }
 
-    pub fn get_palette(&self, name: String) -> Result<ColorPalette> {
-        // TODO: make this generic
-        if let Ok(i) = self
-            .color_palettes
-            .binary_search_by(|point| point.name.cmp(&name))
-        {
-            Ok(self.color_palettes[i].clone())
+    pub fn get_palette(&self, name: &str) -> Result<ColorPalette> {
+        self.search_name(name, |c| &c.color_palettes, |p| p.name.as_str())
+    }
+
+    pub fn get_named_point(&self, name: &str) -> Result<NamedPoint> {
+        self.search_name(name, |c| &c.named_points, |p| p.name.as_str())
+    }
+
+    fn search_name<T, F, G>(&self, name: &str, get_vec: F, get_name: G) -> Result<T>
+    where
+        F: Fn(&Self) -> &[T],
+        G: Fn(&T) -> &str,
+        T: Clone,
+    {
+        let search_vec = get_vec(self);
+        if let Ok(i) = search_vec.binary_search_by_key(&name, get_name) {
+            Ok(search_vec[i].clone())
         } else {
             Err(anyhow!("{} not found in yaml", name))
         }
