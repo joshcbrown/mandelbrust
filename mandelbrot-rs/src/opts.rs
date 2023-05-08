@@ -13,6 +13,9 @@ pub struct Cli {
     /// number of iterations to perform before deciding if a point is in the set
     #[arg(short, long, default_value_t = 2000)]
     max_iters: usize,
+    /// bailout radius for iterations
+    #[arg(short, long, default_value_t = 1e6)]
+    bailout: f64,
     /// resolution of the output image.
     #[arg(short, long, value_enum, default_value_t = Resolution::High)]
     pub resolution: Resolution,
@@ -44,7 +47,7 @@ impl Cli {
             PlottingAlgorithm::Smooth | PlottingAlgorithm::SmoothHistogram => {
                 Box::new(|escape_count, escape_val| {
                     if escape_count < self.max_iters {
-                        let nu = (escape_val.abs_value_sq().log2() / 2.).log2();
+                        let nu = (escape_val.abs_value_sq().ln() / 2.).log2();
                         (escape_count + 1) as f64 - nu
                     } else {
                         self.max_iters as f64
@@ -53,8 +56,15 @@ impl Cli {
             }
         };
 
-        let escape_counts =
-            generate_escape_counts(&x_range, &y_range, width, height, self.max_iters, post_fn);
+        let escape_counts = generate_escape_counts(
+            &x_range,
+            &y_range,
+            width,
+            height,
+            self.max_iters,
+            self.bailout,
+            post_fn,
+        );
 
         Ok(match self.algorithm {
             PlottingAlgorithm::Vanilla | PlottingAlgorithm::Smooth => {

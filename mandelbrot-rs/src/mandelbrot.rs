@@ -67,6 +67,7 @@ pub fn generate_escape_counts<F>(
     width: usize,
     height: usize,
     max_iters: usize,
+    bailout: f64,
     post_fn: F,
 ) -> Vec<Vec<f64>>
 where
@@ -81,7 +82,8 @@ where
                     let re = x_range.lerp(x as f64 / width as f64);
                     let im = y_range.lerp(y as f64 / height as f64);
                     let c = Complex::new(re, im);
-                    let (escape_count, escape_num) = c.escape_count(Complex::id(), 2., max_iters);
+                    let (escape_count, escape_num) =
+                        c.escape_count(Complex::id(), bailout, max_iters);
                     post_fn(escape_count, escape_num)
                 })
                 .collect()
