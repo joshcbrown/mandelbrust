@@ -8,9 +8,10 @@ use mandelbrot_rs::opts::Cli;
 
 fn main() -> Result<()> {
     let args = Cli::parse();
+    let config: Configuration = confy::load("mandelbrot-rs", "config")?;
     let hue_array = args.get_hue_array()?;
     let (width, height) = args.resolution.to_dimensions();
-    let palette = Configuration::get_config()?.get_palette("electric".into())?;
+    let palette = config.get_palette("electric".into())?;
     let img = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
         let &frac = hue_array.get(x as usize).unwrap().get(y as usize).unwrap();
         palette.value(frac)

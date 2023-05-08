@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ColorPalette {
     pub name: String,
-    color_vals: Vec<ConfigRGB>,
+    pub color_vals: Vec<ConfigRGB>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
