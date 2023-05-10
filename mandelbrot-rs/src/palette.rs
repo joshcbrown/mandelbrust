@@ -1,11 +1,13 @@
-use crate::opts::Interval;
+use crate::{
+    config::Configuration,
+    opts::{ColorPaletteOpt, Interval},
+};
 use anyhow::{anyhow, Result};
 use image::Rgb;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ColorPalette {
-    pub name: String,
     pub color_vals: Vec<ConfigRGB>,
 }
 
@@ -48,7 +50,8 @@ impl ConfigRGB {
 }
 
 impl ColorPalette {
-    pub fn new(color_vals: Vec<ConfigRGB>, name: String) -> Result<ColorPalette> {
+    // TODO: switch config to use this instead to enforce constraints
+    pub fn new(color_vals: Vec<ConfigRGB>) -> Result<ColorPalette> {
         if color_vals.len() < 2 {
             return Err(anyhow!("need color vals"));
         }
@@ -67,7 +70,6 @@ impl ColorPalette {
         }
 
         Ok(ColorPalette {
-            name,
             color_vals: sorted_colors,
         })
     }
@@ -87,6 +89,16 @@ impl ColorPalette {
                 let c2 = self.color_vals[i];
                 c1.lerp(&c2, value)
             }
+        }
+    }
+}
+
+impl From<ColorPaletteOpt> for ColorPalette {
+    fn from(opt: ColorPaletteOpt) -> Self {
+        let conf: Configuration = confy::load("mandelbrot-rs", "config").unwrap();
+        match opt {
+            ColorPaletteOpt::Greyscale => conf.get_palette("greyscale").unwrap().clone(),
+            ColorPaletteOpt::Electric => conf.get_palette("electric").unwrap().clone(),
         }
     }
 }

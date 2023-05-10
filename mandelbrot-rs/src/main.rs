@@ -1,22 +1,18 @@
-use std::path::Path;
-
 use anyhow::{Context, Result};
 use clap::Parser;
 use image::ImageBuffer;
-use mandelbrot_rs::config::*;
 use mandelbrot_rs::opts::Cli;
+use mandelbrot_rs::palette::ColorPalette;
 
 fn main() -> Result<()> {
     let args = Cli::parse();
-    let config: Configuration = confy::load("mandelbrot-rs", "config")?;
     let hue_array = args.get_hue_array()?;
     let (width, height) = args.resolution.to_dimensions();
-    let palette = config.get_palette("electric".into())?;
+    let palette = ColorPalette::from(args.palette);
     let img = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
-        let &frac = hue_array.get(x as usize).unwrap().get(y as usize).unwrap();
+        let frac = hue_array[x as usize][y as usize];
         palette.value(frac)
     });
-    let path = Path::new("out/").join(&args.out_file);
-    img.save(path).context("problem saving image")?;
+    img.save(&args.out_file).context("problem saving image")?;
     Ok(())
 }

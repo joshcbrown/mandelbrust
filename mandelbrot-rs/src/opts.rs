@@ -19,6 +19,9 @@ pub struct Cli {
     /// resolution of the output image.
     #[arg(short, long, value_enum, default_value_t = Resolution::High)]
     pub resolution: Resolution,
+    /// color palette to use in output image
+    #[arg(short, long, value_enum, default_value_t = ColorPaletteOpt::Electric)]
+    pub palette: ColorPaletteOpt,
     /// algorithm to plot the image using
     #[arg(short, long, value_enum, default_value_t = PlottingAlgorithm::Histogram)]
     algorithm: PlottingAlgorithm,
@@ -29,10 +32,11 @@ pub struct Cli {
 impl Cli {
     pub fn get_hue_array(&self) -> Result<Vec<Vec<f64>>> {
         let (width, height): (usize, usize) = self.resolution.to_dimensions();
+        let config: Configuration = confy::load("mandelbrot-rs", "config")?;
         let (centre, zoom) = match &self.command {
             &Commands::Centre { x, y, zoom } => (Complex::new(x, y), zoom as f64),
             Commands::CentreString { name } => {
-                let centre = Configuration::get_config()?.get_named_point(&name)?;
+                let centre = config.get_named_point(&name)?;
                 (centre.point, centre.zoom as f64)
             }
         };
@@ -92,6 +96,13 @@ impl Resolution {
             Resolution::High => (1920, 1080),
         }
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum ColorPaletteOpt {
+    Greyscale,
+    Electric,
+    // Warm,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
