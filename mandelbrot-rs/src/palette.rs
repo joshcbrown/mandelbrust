@@ -1,7 +1,4 @@
-use crate::{
-    config::Configuration,
-    opts::{ColorPaletteOpt, Interval},
-};
+use crate::opts::Interval;
 use anyhow::{anyhow, Result};
 use image::Rgb;
 use serde::{Deserialize, Serialize};
@@ -89,16 +86,6 @@ impl ColorPalette {
                 let c2 = self.color_vals[i];
                 c1.lerp(&c2, value)
             }
-        }
-    }
-}
-
-impl From<ColorPaletteOpt> for ColorPalette {
-    fn from(opt: ColorPaletteOpt) -> Self {
-        let conf: Configuration = confy::load("mandelbrot-rs", "config").unwrap();
-        match opt {
-            ColorPaletteOpt::Greyscale => conf.get_palette("greyscale").unwrap().clone(),
-            ColorPaletteOpt::Electric => conf.get_palette("electric").unwrap().clone(),
         }
     }
 }

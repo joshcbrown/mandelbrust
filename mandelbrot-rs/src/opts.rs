@@ -1,8 +1,13 @@
 use crate::config::Configuration;
 use crate::mandelbrot::Complex;
 use crate::mandelbrot::{generate_escape_counts, generate_hist_counts, normalise_escape_counts};
+use crate::palette::ColorPalette;
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
+
+static PALETTE_HELP: &str = "color palette to use in output image; 
+defaults include electric, warm, and greyscale;
+palettes can be added in ~/.config/mandelbrot-rs/config.ron";
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -19,9 +24,13 @@ pub struct Cli {
     /// resolution of the output image.
     #[arg(short, long, value_enum, default_value_t = Resolution::High)]
     pub resolution: Resolution,
-    /// color palette to use in output image
-    #[arg(short, long, value_enum, default_value_t = ColorPaletteOpt::Electric)]
-    pub palette: ColorPaletteOpt,
+    #[arg(
+        short,
+        long,
+        value_enum,
+        default_value = "electric",
+        help = PALETTE_HELP)]
+    pub palette: String,
     /// algorithm to plot the image using
     #[arg(short, long, value_enum, default_value_t = PlottingAlgorithm::Histogram)]
     algorithm: PlottingAlgorithm,
@@ -79,6 +88,11 @@ impl Cli {
             }
         })
     }
+
+    pub fn get_palette(&self) -> Result<ColorPalette> {
+        let config: Configuration = confy::load("mandelbrot-rs", "config.ron")?;
+        config.get_palette(&self.palette).map(|p| p.clone())
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -96,13 +110,6 @@ impl Resolution {
             Resolution::High => (1920, 1080),
         }
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-pub enum ColorPaletteOpt {
-    Greyscale,
-    Electric,
-    // Warm,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
