@@ -1,5 +1,7 @@
 [package]
-name = "mandelbrot-rs"
+name = "mandelbruhst-cli"
+description = "a command-line tool for plotting images of the mandelbrot set"
+license = "MIT"
 version = "0.1.0"
 edition = "2021"
 
