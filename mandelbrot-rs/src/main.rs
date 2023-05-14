@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use image::ImageBuffer;
-use mandelbrot_rs::opts::Cli;
+use mandelbruhst_cli::opts::Cli;
 
 fn main() -> Result<()> {
     let args = Cli::parse();
