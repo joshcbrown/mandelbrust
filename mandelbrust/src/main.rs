@@ -60,12 +60,13 @@ impl Sandbox for App {
                 return;
             }
         }
-        let buf = refresh_image(self.centre, self.zoom as usize).unwrap();
-        self.handle = widget::image::Handle::from_memory(buf.into_raw())
+        // let buf = refresh_image(self.centre, self.zoom as usize).unwrap();
+        // self.handle = widget::image::Handle::from_memory(buf.into_raw())
+        self.handle = "img.png".into();
     }
 
     fn view(&self) -> iced::Element<Message> {
-        let clickable_image = widget::image(self.handle.clone());
+        let image = widget::image(self.handle.clone());
 
         let point_text = format!(
             "Centre: {}, zoom: {}, zoom_multiplier: {}",
@@ -79,7 +80,7 @@ impl Sandbox for App {
             Slider::new(1.0..=50.0, self.zoom_multiplier, Message::ZoomMultiplier)
         ]
         .spacing(20);
-        column![clickable_image, middle_row, text(&point_text).size(20),]
+        column![image, middle_row, text(&point_text).size(20),]
             .spacing(20)
             .into()
     }
