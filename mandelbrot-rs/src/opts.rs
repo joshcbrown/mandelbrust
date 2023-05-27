@@ -17,10 +17,10 @@ pub struct Cli {
     pub out_file: String,
     /// number of iterations to perform before deciding if a point is in the set
     #[arg(short, long, default_value_t = 2000)]
-    max_iters: usize,
+    pub max_iters: usize,
     /// bailout radius for iterations
     #[arg(short, long, default_value_t = 1e6)]
-    bailout: f64,
+    pub bailout: f64,
     /// resolution of the output image.
     #[arg(short, long, value_enum, default_value_t = Resolution::High)]
     pub resolution: Resolution,
@@ -33,9 +33,9 @@ pub struct Cli {
     pub palette: String,
     /// algorithm to plot the image using
     #[arg(short, long, value_enum, default_value_t = PlottingAlgorithm::Histogram)]
-    algorithm: PlottingAlgorithm,
+    pub algorithm: PlottingAlgorithm,
     #[command(subcommand)]
-    command: Commands,
+    pub command: Commands,
 }
 
 impl Cli {
@@ -121,7 +121,7 @@ pub enum PlottingAlgorithm {
 }
 
 #[derive(Subcommand, Debug)]
-enum Commands {
+pub enum Commands {
     Centre {
         x: f64,
         y: f64,
@@ -146,7 +146,7 @@ impl Interval {
     }
 }
 
-fn get_intervals(centre: Complex, zoom: f64) -> (Interval, Interval) {
+pub fn get_intervals(centre: Complex, zoom: f64) -> (Interval, Interval) {
     return (
         Interval {
             lower: centre.re - 16. / zoom,
