@@ -1,122 +1,104 @@
 use anyhow::{Context, Result};
-use iced::widget::{self, column, row, text, Button, Slider};
-use iced::{alignment, Length, Point, Sandbox, Settings};
+use eframe::egui::{Image, Sense, Slider, Ui};
+use eframe::emath::Align;
+use eframe::epaint::ColorImage;
+use eframe::{egui, run_native};
 use image::{ImageBuffer, Rgb};
 use mandelbruhst_cli::mandelbrot::Complex;
 use mandelbruhst_cli::opts::{
     get_intervals, Cli, Commands, Interval, PlottingAlgorithm, Resolution,
 };
-use mandelbruhst_gui::mouse_area::MouseArea;
 
-pub fn main() -> iced::Result {
-    App::run(Settings::default())
-}
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    PointClicked(f32, f32),
-    ZoomIn,
-    ZoomOut,
-    ZoomMultiplier(f32),
+pub fn main() -> Result<(), eframe::Error> {
+    run_native(
+        "mandelbrot explorer",
+        Default::default(),
+        Box::new(|_cc| Box::new(App::default())),
+    )
 }
 
 pub struct App {
     centre: Complex,
     zoom: f64,
     zoom_multiplier: f32,
-    handle: widget::image::Handle,
+    image_texture: Option<egui::TextureHandle>,
 }
 
-impl Sandbox for App {
-    type Message = Message;
+impl eframe::App for App {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if self.image_texture.is_none() {
+                self.refresh_image(ui).unwrap();
+            }
+            let texture = self.image_texture.clone().unwrap();
+            let image_response =
+                ui.add(Image::new(&texture, texture.size_vec2()).sense(Sense::click()));
 
-    fn new() -> Self {
-        let centre = Complex::id();
-        let zoom = 8_f64;
-        let image = refresh_image(centre, zoom as usize).unwrap();
+            if image_response.clicked() {
+                let rect = image_response.rect;
+                let rel_position = image_response.hover_pos().unwrap() - rect.left_top();
+                let (x_bounds, y_bounds) = get_intervals(self.centre, self.zoom);
+                self.centre = Complex::new(
+                    x_bounds.lerp(rel_position.x as f64 / rect.width() as f64),
+                    y_bounds.lerp(rel_position.y as f64 / rect.height() as f64),
+                );
+                self.refresh_image(ui).unwrap();
+            }
+            let mut refresh = false;
+            ui.with_layout(egui::Layout::left_to_right(Align::TOP), |ui| {
+                if ui.button("+").clicked() {
+                    self.zoom *= self.zoom_multiplier as f64;
+                    refresh = true;
+                }
+                if ui.button("-").clicked() {
+                    self.zoom /= self.zoom_multiplier as f64;
+                    refresh = true;
+                }
+                ui.add(Slider::new(&mut self.zoom_multiplier, 1.0..=10.))
+            });
+            if refresh {
+                self.refresh_image(ui).unwrap();
+            }
+        });
+    }
+}
+
+impl Default for App {
+    fn default() -> Self {
         Self {
-            centre,
-            zoom,
-            handle: widget::image::Handle::from_pixels(960, 540, image.into_raw()),
+            centre: Complex::id(),
+            zoom: 8.,
             zoom_multiplier: 2.,
+            image_texture: None,
         }
-    }
-
-    fn title(&self) -> String {
-        String::from("Mandelbrot - Iced")
-    }
-
-    fn update(&mut self, message: Message) {
-        match message {
-            Message::PointClicked(x_per, y_per) => {
-                let (x_bounds, y_bounds) = get_intervals(self.centre, self.zoom as f64);
-                self.centre =
-                    Complex::new(x_bounds.lerp(x_per as f64), y_bounds.lerp(y_per as f64));
-            }
-            Message::ZoomIn => self.zoom *= self.zoom_multiplier as f64,
-            Message::ZoomOut => self.zoom /= self.zoom_multiplier as f64,
-            Message::ZoomMultiplier(new_zoom) => {
-                self.zoom_multiplier = new_zoom;
-                return;
-            }
-        }
-        // let buf = refresh_image(self.centre, self.zoom as usize).unwrap();
-        // self.handle = widget::image::Handle::from_memory(buf.into_raw())
-        self.handle = "img.png".into();
-    }
-
-    fn view(&self) -> iced::Element<Message> {
-        let image = widget::image(self.handle.clone());
-
-        let point_text = format!(
-            "Centre: {}, zoom: {}, zoom_multiplier: {}",
-            self.centre.to_string(),
-            self.zoom as f64,
-            self.zoom_multiplier
-        );
-        let middle_row = row![
-            button("+").on_press(Message::ZoomIn),
-            button("-").on_press(Message::ZoomOut),
-            Slider::new(1.0..=50.0, self.zoom_multiplier, Message::ZoomMultiplier)
-        ]
-        .spacing(20);
-        column![image, middle_row, text(&point_text).size(20),]
-            .spacing(20)
-            .into()
-    }
-
-    fn theme(&self) -> iced::Theme {
-        iced::Theme::Dark
     }
 }
 
-fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
-    iced::widget::button(text(label).horizontal_alignment(alignment::Horizontal::Center))
-        .padding(12)
-        .width(100)
-}
-
-fn refresh_image(centre: Complex, zoom: usize) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
-    let args = Cli {
-        out_file: "".to_string(),
-        max_iters: 5000,
-        bailout: 1e9,
-        resolution: Resolution::Med,
-        palette: "electric".to_string(),
-        algorithm: PlottingAlgorithm::SmoothHistogram,
-        command: Commands::Centre {
-            x: centre.re,
-            y: centre.im,
-            zoom,
-        },
-    };
-    let hue_array = args.get_hue_array()?;
-    let (width, height) = args.resolution.to_dimensions();
-    let palette = args.get_palette()?;
-    let buf = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
-        let frac = hue_array[x as usize][y as usize];
-        palette.value(frac)
-    });
-    buf.save("img.png")?;
-    Ok(buf)
+impl App {
+    fn refresh_image(&mut self, ui: &Ui) -> Result<()> {
+        let args = Cli {
+            out_file: "".to_string(),
+            max_iters: 5000,
+            bailout: 1e9,
+            resolution: Resolution::Med,
+            palette: "electric".to_string(),
+            algorithm: PlottingAlgorithm::SmoothHistogram,
+            command: Commands::Centre {
+                x: self.centre.re,
+                y: self.centre.im,
+                zoom: self.zoom as usize,
+            },
+        };
+        let hue_array = args.get_hue_array()?;
+        let (width, height) = args.resolution.to_dimensions();
+        let palette = args.get_palette()?;
+        let buf = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
+            let frac = hue_array[x as usize][y as usize];
+            palette.value(frac)
+        });
+        buf.save("img.png")?;
+        let image = ColorImage::from_rgb([960, 540], &buf);
+        self.image_texture = Some(ui.ctx().load_texture("image", image, Default::default()));
+        Ok(())
+    }
 }
