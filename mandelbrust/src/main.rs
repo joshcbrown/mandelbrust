@@ -9,6 +9,17 @@ use mandelbruhst_cli::opts::{
     get_intervals, Cli, Commands, Interval, PlottingAlgorithm, Resolution,
 };
 
+// TODO: unconstify
+const PALETTES: [&str; 2] = ["electric", "warm"];
+// TODO: fix other crate to allow for this
+const CENTRE_STRINGS: [&str; 5] = [
+    "chloro-zoom",
+    "capillary",
+    "splotches",
+    "circle",
+    "divergence",
+];
+
 pub fn main() -> Result<(), eframe::Error> {
     run_native(
         "mandelbrot explorer",
@@ -23,6 +34,20 @@ pub struct App {
     zoom_multiplier: f32,
     palette: String,
     image_texture: Option<egui::TextureHandle>,
+    image: Option<ImageBuffer<Rgb<u8>, Vec<u8>>>,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self {
+            centre: Complex::id(),
+            zoom: 8.,
+            zoom_multiplier: 2.,
+            palette: "electric".into(),
+            image_texture: None,
+            image: None,
+        }
+    }
 }
 
 impl eframe::App for App {
@@ -43,20 +68,8 @@ impl eframe::App for App {
     }
 }
 
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            centre: Complex::id(),
-            zoom: 8.,
-            zoom_multiplier: 2.,
-            palette: "electric".into(),
-            image_texture: None,
-        }
-    }
-}
-
 impl App {
-    fn refresh_image(&mut self, ui: &Ui) -> Result<()> {
+    fn refresh_image(&mut self) -> Result<()> {
         let args = Cli {
             out_file: "".to_string(),
             max_iters: 5000,
@@ -73,13 +86,10 @@ impl App {
         let hue_array = args.get_hue_array()?;
         let (width, height) = args.resolution.to_dimensions();
         let palette = args.get_palette()?;
-        let buf = ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
+        self.image = Some(ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
             let frac = hue_array[x as usize][y as usize];
             palette.value(frac)
-        });
-        buf.save("img.png")?;
-        let image = ColorImage::from_rgb([960, 540], &buf);
-        self.image_texture = Some(ui.ctx().load_texture("image", image, Default::default()));
+        }));
         Ok(())
     }
 
@@ -101,18 +111,44 @@ impl App {
                     }
                 })
             });
-            ui.add_space(10.);
+            ui.add_space(20.);
             ui.label("sensitivity");
             ui.add(Slider::new(&mut self.zoom_multiplier, 1.1..=10.));
             if refresh {
-                self.refresh_image(ui).unwrap();
+                self.refresh_image().unwrap();
             }
+            ui.add_space(20.);
+            egui::ComboBox::from_label("palette")
+                .selected_text(self.palette.clone())
+                .show_ui(ui, |ui| {
+                    for option in PALETTES {
+                        if ui
+                            .selectable_value(&mut self.palette, option.into(), option)
+                            .clicked()
+                        {
+                            self.refresh_image().unwrap();
+                        };
+                    }
+                });
+            ui.add_space(20.);
+            if ui.button("save image").clicked() {
+                self.refresh_image().unwrap();
+                self.image.take().unwrap().save("mandelbrot.png").unwrap();
+            };
         });
     }
+
     fn render_image(&mut self, ui: &mut Ui) {
         // TODO: resize image with image crate according to window size
         if self.image_texture.is_none() {
-            self.refresh_image(ui).unwrap();
+            self.refresh_image().unwrap();
+        }
+        if let Some(image) = self.image.take() {
+            self.image_texture = Some(ui.ctx().load_texture(
+                "image",
+                ColorImage::from_rgb([960, 540], &image),
+                Default::default(),
+            ));
         }
 
         let texture = self.image_texture.clone().unwrap();
@@ -127,7 +163,7 @@ impl App {
                 x_bounds.lerp(rel_position.x as f64 / rect.width() as f64),
                 y_bounds.lerp(rel_position.y as f64 / rect.height() as f64),
             );
-            self.refresh_image(ui).unwrap();
+            self.refresh_image().unwrap();
         }
     }
 }
