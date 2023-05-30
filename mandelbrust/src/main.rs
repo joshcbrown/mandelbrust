@@ -21,6 +21,7 @@ pub struct App {
     centre: Complex,
     zoom: f64,
     zoom_multiplier: f32,
+    palette: String,
     image_texture: Option<egui::TextureHandle>,
 }
 
@@ -36,53 +37,9 @@ impl eframe::App for App {
 
         egui::SidePanel::left("config")
             .resizable(false)
-            .show(ctx, |ui| {
-                ui.with_layout(egui::Layout::top_down_justified(Align::Min), |ui| {
-                    ui.label("zoom controls");
-                    let mut refresh = false;
-                    ui.columns(2, |ui| {
-                        ui[0].vertical_centered(|ui| {
-                            if ui.button("      +      ").clicked() {
-                                self.zoom *= self.zoom_multiplier as f64;
-                                refresh = true;
-                            }
-                        });
-                        ui[1].vertical_centered(|ui| {
-                            if ui.button("      -      ").clicked() {
-                                self.zoom /= self.zoom_multiplier as f64;
-                                refresh = true;
-                            }
-                        })
-                    });
-                    ui.add_space(10.);
-                    ui.label("sensitivity");
-                    ui.add(Slider::new(&mut self.zoom_multiplier, 1.1..=10.));
-                    if refresh {
-                        self.refresh_image(ui).unwrap();
-                    }
-                })
-            });
+            .show(ctx, |ui| self.render_opts(ui));
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            if self.image_texture.is_none() {
-                self.refresh_image(ui).unwrap();
-            }
-
-            let texture = self.image_texture.clone().unwrap();
-            let image_response =
-                ui.add(Image::new(&texture, texture.size_vec2()).sense(Sense::click()));
-
-            if image_response.clicked() {
-                let rect = image_response.rect;
-                let rel_position = image_response.hover_pos().unwrap() - rect.left_top();
-                let (x_bounds, y_bounds) = get_intervals(self.centre, self.zoom);
-                self.centre = Complex::new(
-                    x_bounds.lerp(rel_position.x as f64 / rect.width() as f64),
-                    y_bounds.lerp(rel_position.y as f64 / rect.height() as f64),
-                );
-                self.refresh_image(ui).unwrap();
-            }
-        });
+        egui::CentralPanel::default().show(ctx, |ui| self.render_image(ui));
     }
 }
 
@@ -92,6 +49,7 @@ impl Default for App {
             centre: Complex::id(),
             zoom: 8.,
             zoom_multiplier: 2.,
+            palette: "electric".into(),
             image_texture: None,
         }
     }
@@ -104,7 +62,7 @@ impl App {
             max_iters: 5000,
             bailout: 1e9,
             resolution: Resolution::Med,
-            palette: "electric".to_string(),
+            palette: self.palette.clone(),
             algorithm: PlottingAlgorithm::SmoothHistogram,
             command: Commands::Centre {
                 x: self.centre.re,
@@ -123,5 +81,53 @@ impl App {
         let image = ColorImage::from_rgb([960, 540], &buf);
         self.image_texture = Some(ui.ctx().load_texture("image", image, Default::default()));
         Ok(())
+    }
+
+    fn render_opts(&mut self, ui: &mut Ui) {
+        ui.with_layout(egui::Layout::top_down_justified(Align::Min), |ui| {
+            ui.label("zoom controls");
+            let mut refresh = false;
+            ui.columns(2, |ui| {
+                ui[0].vertical_centered(|ui| {
+                    if ui.button("      +      ").clicked() {
+                        self.zoom *= self.zoom_multiplier as f64;
+                        refresh = true;
+                    }
+                });
+                ui[1].vertical_centered(|ui| {
+                    if ui.button("      -      ").clicked() {
+                        self.zoom /= self.zoom_multiplier as f64;
+                        refresh = true;
+                    }
+                })
+            });
+            ui.add_space(10.);
+            ui.label("sensitivity");
+            ui.add(Slider::new(&mut self.zoom_multiplier, 1.1..=10.));
+            if refresh {
+                self.refresh_image(ui).unwrap();
+            }
+        });
+    }
+    fn render_image(&mut self, ui: &mut Ui) {
+        // TODO: resize image with image crate according to window size
+        if self.image_texture.is_none() {
+            self.refresh_image(ui).unwrap();
+        }
+
+        let texture = self.image_texture.clone().unwrap();
+        let image_response =
+            ui.add(Image::new(&texture, texture.size_vec2()).sense(Sense::click()));
+
+        if image_response.clicked() {
+            let rect = image_response.rect;
+            let rel_position = image_response.hover_pos().unwrap() - rect.left_top();
+            let (x_bounds, y_bounds) = get_intervals(self.centre, self.zoom);
+            self.centre = Complex::new(
+                x_bounds.lerp(rel_position.x as f64 / rect.width() as f64),
+                y_bounds.lerp(rel_position.y as f64 / rect.height() as f64),
+            );
+            self.refresh_image(ui).unwrap();
+        }
     }
 }
