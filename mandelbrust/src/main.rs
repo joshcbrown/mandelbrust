@@ -26,10 +26,41 @@ pub struct App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::TopBottomPanel::top("heading")
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.with_layout(egui::Layout::top_down_justified(Align::Center), |ui| {
+                    ui.heading("mandelbust")
+                });
+            });
+
+        egui::SidePanel::left("config")
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.with_layout(egui::Layout::top_down_justified(Align::Min), |ui| {
+                    let mut refresh = false;
+                    ui.columns(2, |ui| {
+                        if ui[0].button("+").clicked() {
+                            self.zoom *= self.zoom_multiplier as f64;
+                            refresh = true;
+                        }
+                        if ui[1].button("-").clicked() {
+                            self.zoom /= self.zoom_multiplier as f64;
+                            refresh = true;
+                        }
+                    });
+                    ui.add(Slider::new(&mut self.zoom_multiplier, 1.0..=10.));
+                    if refresh {
+                        self.refresh_image(ui).unwrap();
+                    }
+                })
+            });
+
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.image_texture.is_none() {
                 self.refresh_image(ui).unwrap();
             }
+
             let texture = self.image_texture.clone().unwrap();
             let image_response =
                 ui.add(Image::new(&texture, texture.size_vec2()).sense(Sense::click()));
@@ -42,21 +73,6 @@ impl eframe::App for App {
                     x_bounds.lerp(rel_position.x as f64 / rect.width() as f64),
                     y_bounds.lerp(rel_position.y as f64 / rect.height() as f64),
                 );
-                self.refresh_image(ui).unwrap();
-            }
-            let mut refresh = false;
-            ui.with_layout(egui::Layout::left_to_right(Align::TOP), |ui| {
-                if ui.button("+").clicked() {
-                    self.zoom *= self.zoom_multiplier as f64;
-                    refresh = true;
-                }
-                if ui.button("-").clicked() {
-                    self.zoom /= self.zoom_multiplier as f64;
-                    refresh = true;
-                }
-                ui.add(Slider::new(&mut self.zoom_multiplier, 1.0..=10.))
-            });
-            if refresh {
                 self.refresh_image(ui).unwrap();
             }
         });
