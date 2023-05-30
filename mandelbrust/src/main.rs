@@ -38,18 +38,25 @@ impl eframe::App for App {
             .resizable(false)
             .show(ctx, |ui| {
                 ui.with_layout(egui::Layout::top_down_justified(Align::Min), |ui| {
+                    ui.label("zoom controls");
                     let mut refresh = false;
                     ui.columns(2, |ui| {
-                        if ui[0].button("+").clicked() {
-                            self.zoom *= self.zoom_multiplier as f64;
-                            refresh = true;
-                        }
-                        if ui[1].button("-").clicked() {
-                            self.zoom /= self.zoom_multiplier as f64;
-                            refresh = true;
-                        }
+                        ui[0].vertical_centered(|ui| {
+                            if ui.button("      +      ").clicked() {
+                                self.zoom *= self.zoom_multiplier as f64;
+                                refresh = true;
+                            }
+                        });
+                        ui[1].vertical_centered(|ui| {
+                            if ui.button("      -      ").clicked() {
+                                self.zoom /= self.zoom_multiplier as f64;
+                                refresh = true;
+                            }
+                        })
                     });
-                    ui.add(Slider::new(&mut self.zoom_multiplier, 1.0..=10.));
+                    ui.add_space(10.);
+                    ui.label("sensitivity");
+                    ui.add(Slider::new(&mut self.zoom_multiplier, 1.1..=10.));
                     if refresh {
                         self.refresh_image(ui).unwrap();
                     }
