@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use eframe::egui::{Image, Sense, Slider, Ui};
+use eframe::egui::{DragValue, Image, Key, PointerButton, Sense, Slider, Ui};
 use eframe::emath::Align;
 use eframe::epaint::ColorImage;
 use eframe::{egui, run_native};
@@ -35,6 +35,7 @@ pub struct App {
     palette: String,
     image_texture: Option<egui::TextureHandle>,
     image: Option<ImageBuffer<Rgb<u8>, Vec<u8>>>,
+    iterations: usize,
 }
 
 impl Default for App {
@@ -46,6 +47,7 @@ impl Default for App {
             palette: "electric".into(),
             image_texture: None,
             image: None,
+            iterations: 5000,
         }
     }
 }
@@ -72,7 +74,7 @@ impl App {
     fn refresh_image(&mut self) -> Result<()> {
         let args = Cli {
             out_file: "".to_string(),
-            max_iters: 5000,
+            max_iters: self.iterations,
             bailout: 1e9,
             resolution: Resolution::Med,
             palette: self.palette.clone(),
@@ -111,6 +113,20 @@ impl App {
                     }
                 })
             });
+            ui.add_space(20.);
+            ui.label("iterations");
+            let iterations_field = ui.add(DragValue::new(&mut self.iterations).speed(5.));
+
+            if (iterations_field.lost_focus()
+                && iterations_field
+                    .ctx
+                    .input(|input| input.key_pressed(Key::Enter)))
+                || (iterations_field
+                    .ctx
+                    .input(|input| input.pointer.any_released()))
+            {
+                self.refresh_image().unwrap();
+            }
             ui.add_space(20.);
             ui.label("sensitivity");
             ui.add(Slider::new(&mut self.zoom_multiplier, 1.1..=10.));
