@@ -1,30 +1,24 @@
-use anyhow::{Context, Result};
-use eframe::egui::{DragValue, Image, Key, PointerButton, Sense, Slider, Ui};
+use std::sync::OnceLock;
+
+use anyhow::Result;
+use eframe::egui::{DragValue, Image, Key, Sense, Slider, Ui};
 use eframe::emath::Align;
 use eframe::epaint::ColorImage;
 use eframe::{egui, run_native};
 use image::{ImageBuffer, Rgb};
+use mandelbruhst_cli::config::Configuration;
 use mandelbruhst_cli::mandelbrot::Complex;
-use mandelbruhst_cli::opts::{
-    get_intervals, Cli, Commands, Interval, PlottingAlgorithm, Resolution,
-};
+use mandelbruhst_cli::opts::{get_intervals, Cli, Commands, PlottingAlgorithm, Resolution};
 
-// TODO: unconstify
-const PALETTES: [&str; 2] = ["electric", "warm"];
-// TODO: fix other crate to allow for this
-const CENTRE_STRINGS: [&str; 5] = [
-    "chloro-zoom",
-    "capillary",
-    "splotches",
-    "circle",
-    "divergence",
-];
+static CONFIG: OnceLock<Configuration> = OnceLock::new();
 
 pub fn main() -> Result<(), eframe::Error> {
+    CONFIG.get_or_init(|| confy::load("mandelbrot-rs", "config").unwrap());
+
     run_native(
         "mandelbrot explorer",
         Default::default(),
-        Box::new(|_cc| Box::new(App::default())),
+        Box::new(|_cc| Box::<App>::default()),
     )
 }
 
@@ -33,6 +27,7 @@ pub struct App {
     zoom: f64,
     zoom_multiplier: f32,
     palette: String,
+    landmark: String,
     image_texture: Option<egui::TextureHandle>,
     image: Option<ImageBuffer<Rgb<u8>, Vec<u8>>>,
     iterations: usize,
@@ -45,6 +40,7 @@ impl Default for App {
             zoom: 8.,
             zoom_multiplier: 2.,
             palette: "electric".into(),
+            landmark: "".into(),
             image_texture: None,
             image: None,
             iterations: 5000,
@@ -134,16 +130,39 @@ impl App {
                 self.refresh_image().unwrap();
             }
             ui.add_space(20.);
+            let conf = CONFIG.get().unwrap();
             egui::ComboBox::from_label("palette")
                 .selected_text(self.palette.clone())
                 .show_ui(ui, |ui| {
-                    for option in PALETTES {
+                    let palettes = conf.color_palettes.keys();
+                    for option in palettes {
                         if ui
                             .selectable_value(&mut self.palette, option.into(), option)
                             .clicked()
                         {
                             self.refresh_image().unwrap();
                         };
+                    }
+                });
+            ui.add_space(20.);
+            egui::ComboBox::from_label("landmark")
+                .selected_text(if self.landmark.is_empty() {
+                    "...".into()
+                } else {
+                    self.landmark.clone()
+                })
+                .show_ui(ui, |ui| {
+                    let points = conf.named_points.keys();
+                    for point_name in points {
+                        if ui
+                            .selectable_value(&mut self.landmark, point_name.into(), point_name)
+                            .clicked()
+                        {
+                            let point = conf.named_points.get(point_name).unwrap();
+                            self.centre = point.point;
+                            self.zoom = point.zoom as f64;
+                            self.refresh_image().unwrap();
+                        }
                     }
                 });
             ui.add_space(20.);
