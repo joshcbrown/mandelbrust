@@ -1,12 +1,12 @@
 [package]
-name = "mandelbruhst-gui"
+name = "mandelbrust"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mandelbruhst-cli = {path = "../mandelbruhst-cli/"}
+mandelbrust-cli = {path = "../mandelbrust-cli/"}
 image = "0.24.6"
 anyhow = "1.0.69"
 eframe = { version = "0.22.0", features = ["wayland"] }

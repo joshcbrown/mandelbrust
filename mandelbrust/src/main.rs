@@ -6,9 +6,9 @@ use eframe::emath::Align;
 use eframe::epaint::ColorImage;
 use eframe::{egui, run_native};
 use image::{ImageBuffer, Rgb};
-use mandelbruhst_cli::config::Configuration;
-use mandelbruhst_cli::mandelbrot::Complex;
-use mandelbruhst_cli::opts::{get_intervals, Cli, Commands, PlottingAlgorithm, Resolution};
+use mandelbrust_cli::config::Configuration;
+use mandelbrust_cli::mandelbrot::Complex;
+use mandelbrust_cli::opts::{get_intervals, Cli, Commands, PlottingAlgorithm, Resolution};
 
 static CONFIG: OnceLock<Configuration> = OnceLock::new();
 
