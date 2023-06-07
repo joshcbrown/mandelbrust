@@ -88,4 +88,30 @@ impl ColorPalette {
             }
         }
     }
+
+    pub fn repeat(mut self, n: usize) -> Self {
+        let len = self.color_vals.len();
+        if len <= 2 {
+            return self;
+        }
+        let space_between = 1 as f64 / ((len - 1) * n) as f64;
+
+        let mut new_vals: Vec<ConfigRGB> = std::iter::repeat(&self.color_vals[..len - 1])
+            .take(n)
+            .enumerate()
+            .flat_map(|(i, pal)| {
+                pal.iter().enumerate().map(move |(j, &config_rgb)| {
+                    let value = (i * (len - 1) + j) as f64 * space_between;
+                    ConfigRGB {
+                        value,
+                        ..config_rgb
+                    }
+                })
+            })
+            .collect();
+        new_vals.push(self.color_vals[len - 1]);
+        self.color_vals = new_vals;
+        println!("{:#?}", self);
+        self
+    }
 }

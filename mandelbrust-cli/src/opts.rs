@@ -31,6 +31,8 @@ pub struct Cli {
         default_value = "electric",
         help = PALETTE_HELP)]
     pub palette: String,
+    #[arg(short = 'x', long, default_value_t = 1)]
+    pub palette_repeats: usize,
     /// algorithm to plot the image using
     #[arg(short, long, value_enum, default_value_t = PlottingAlgorithm::Histogram)]
     pub algorithm: PlottingAlgorithm,
@@ -90,8 +92,10 @@ impl Cli {
     }
 
     pub fn get_palette(&self) -> Result<ColorPalette> {
-        let config: Configuration = confy::load("mandelbrot-rs", "config.ron")?;
-        config.get_palette(&self.palette).map(|p| p.clone())
+        let config: Configuration = confy::load("mandelbrot-rs", "config")?;
+        config
+            .get_palette(&self.palette)
+            .map(|p| p.clone().repeat(self.palette_repeats))
     }
 }
 
