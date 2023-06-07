@@ -146,6 +146,43 @@ impl Default for Configuration {
                     ],
                 },
             ),
+            (
+                "vibrant".into(),
+                ColorPalette {
+                    color_vals: vec![
+                        ConfigRGB {
+                            value: 0.0,
+                            red: 8,
+                            green: 1,
+                            blue: 78,
+                        },
+                        ConfigRGB {
+                            value: 0.3,
+                            red: 174,
+                            green: 24,
+                            blue: 19,
+                        },
+                        ConfigRGB {
+                            value: 0.7,
+                            red: 229,
+                            green: 218,
+                            blue: 11,
+                        },
+                        ConfigRGB {
+                            value: 0.99,
+                            red: 240,
+                            green: 240,
+                            blue: 240,
+                        },
+                        ConfigRGB {
+                            value: 1.0,
+                            red: 0,
+                            green: 0,
+                            blue: 0,
+                        },
+                    ],
+                },
+            ),
         ]);
 
         let named_points = HashMap::from_iter([
