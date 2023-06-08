@@ -2,5 +2,11 @@
 
 members = [
     "mandelbrust",
+    "mandelbrust-gif",
     "mandelbrust-cli"
 ]
+
+[workspace.dependencies]
+confy = {version = "0.5.1", features = ["yaml_conf"], default_features = false}
+image = "0.24.5"
+anyhow = "1.0.69"
