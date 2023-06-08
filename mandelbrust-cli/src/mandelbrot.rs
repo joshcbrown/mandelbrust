@@ -57,7 +57,7 @@ impl Complex {
                 return (iter, z_iter);
             }
         }
-        return (max_iters, z_iter);
+        (max_iters, z_iter)
     }
 }
 

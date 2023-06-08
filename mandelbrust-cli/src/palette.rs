@@ -94,7 +94,7 @@ impl ColorPalette {
         if len <= 2 {
             return self;
         }
-        let space_between = 1 as f64 / ((len - 1) * n) as f64;
+        let space_between = 1_f64 / ((len - 1) * n) as f64;
 
         let mut new_vals: Vec<ConfigRGB> = std::iter::repeat(&self.color_vals[..len - 1])
             .take(n)
@@ -111,7 +111,6 @@ impl ColorPalette {
             .collect();
         new_vals.push(self.color_vals[len - 1]);
         self.color_vals = new_vals;
-        println!("{:#?}", self);
         self
     }
 }

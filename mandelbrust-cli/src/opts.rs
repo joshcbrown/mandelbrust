@@ -47,7 +47,7 @@ impl Cli {
         let (centre, zoom) = match &self.command {
             &Commands::Centre { x, y, zoom } => (Complex::new(x, y), zoom as f64),
             Commands::CentreString { name } => {
-                let centre = config.get_named_point(&name)?;
+                let centre = config.get_named_point(name)?;
                 (centre.point, centre.zoom as f64)
             }
         };
@@ -151,7 +151,7 @@ impl Interval {
 }
 
 pub fn get_intervals(centre: Complex, zoom: f64) -> (Interval, Interval) {
-    return (
+    (
         Interval {
             lower: centre.re - 16. / zoom,
             upper: centre.re + 16. / zoom,
@@ -160,5 +160,5 @@ pub fn get_intervals(centre: Complex, zoom: f64) -> (Interval, Interval) {
             lower: centre.im - 9. / zoom,
             upper: centre.im + 9. / zoom,
         },
-    );
+    )
 }
