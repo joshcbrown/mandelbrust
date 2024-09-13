@@ -1,12 +1,12 @@
 [workspace]
 
-members = [
-    "mandelbrust",
-    "mandelbrust-gif",
-    "mandelbrust-cli"
-]
+members = ["mandelbrust", "mandelbrust-gif", "mandelbrust-cli"]
+
+resolver = "2"
 
 [workspace.dependencies]
-confy = {version = "0.5.1", features = ["yaml_conf"], default_features = false}
-image = "0.24.5"
-anyhow = "1.0.69"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_derive = "1.0.152"
+confy = "0.6.1"
+image = "0.25.2"
+anyhow = "1.0.87"

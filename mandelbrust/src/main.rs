@@ -31,6 +31,7 @@ pub struct App {
     image_texture: Option<egui::TextureHandle>,
     image: Option<ImageBuffer<Rgb<u8>, Vec<u8>>>,
     iterations: usize,
+    palette_cycles: usize,
 }
 
 impl Default for App {
@@ -44,6 +45,7 @@ impl Default for App {
             image_texture: None,
             image: None,
             iterations: 5000,
+            palette_cycles: 1,
         }
     }
 }
@@ -80,13 +82,13 @@ impl App {
                 y: self.centre.im,
                 zoom: self.zoom as usize,
             },
+            palette_repeats: self.palette_cycles,
         };
         let hue_array = args.get_hue_array()?;
         let (width, height) = args.resolution.to_dimensions();
         let palette = args.get_palette()?;
         self.image = Some(ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
-            let frac = hue_array[x as usize][y as usize];
-            palette.value(frac)
+            palette.value(hue_array[x as usize][y as usize])
         }));
         Ok(())
     }
@@ -123,6 +125,18 @@ impl App {
             {
                 self.refresh_image().unwrap();
             }
+            ui.label("palette cycles");
+            let cycles_field = ui.add(DragValue::new(&mut self.palette_cycles).speed(1.));
+
+            if (cycles_field.lost_focus()
+                && cycles_field
+                    .ctx
+                    .input(|input| input.key_pressed(Key::Enter)))
+                || (cycles_field.ctx.input(|input| input.pointer.any_released()))
+            {
+                self.refresh_image().unwrap();
+            }
+
             ui.add_space(20.);
             ui.label("sensitivity");
             ui.add(Slider::new(&mut self.zoom_multiplier, 1.1..=10.));
