@@ -1,20 +1,14 @@
-use std::sync::OnceLock;
-
 use anyhow::Result;
 use eframe::egui::{DragValue, Image, Key, Sense, Slider, Ui};
 use eframe::emath::Align;
 use eframe::epaint::ColorImage;
 use eframe::{egui, run_native};
 use image::{ImageBuffer, Rgb};
-use mandelbrust_cli::config::Configuration;
+use mandelbrust_cli::config::{Configuration, NamedPoint};
 use mandelbrust_cli::mandelbrot::Complex;
 use mandelbrust_cli::opts::{get_intervals, Cli, Commands, PlottingAlgorithm, Resolution};
 
-static CONFIG: OnceLock<Configuration> = OnceLock::new();
-
 pub fn main() -> Result<(), eframe::Error> {
-    CONFIG.get_or_init(|| confy::load("mandelbrot-rs", "config").unwrap());
-
     run_native(
         "mandelbrot explorer",
         Default::default(),
@@ -23,6 +17,7 @@ pub fn main() -> Result<(), eframe::Error> {
 }
 
 pub struct App {
+    config: Configuration,
     centre: Complex,
     zoom: f64,
     zoom_multiplier: f32,
@@ -32,11 +27,13 @@ pub struct App {
     image: Option<ImageBuffer<Rgb<u8>, Vec<u8>>>,
     iterations: usize,
     palette_cycles: usize,
+    new_palette_name: String,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
+            config: confy::load("mandelbrot-rs", "config").unwrap(),
             centre: Complex::id(),
             zoom: 8.,
             zoom_multiplier: 2.,
@@ -46,6 +43,7 @@ impl Default for App {
             image: None,
             iterations: 5000,
             palette_cycles: 1,
+            new_palette_name: "".into(),
         }
     }
 }
@@ -138,13 +136,16 @@ impl App {
             }
 
             ui.add_space(20.);
+            ui.label(format!("centre: {}", self.centre.to_string()));
+
+            ui.add_space(20.);
             ui.label("sensitivity");
             ui.add(Slider::new(&mut self.zoom_multiplier, 1.1..=10.));
             if refresh {
                 self.refresh_image().unwrap();
             }
             ui.add_space(20.);
-            let conf = CONFIG.get().unwrap();
+            let mut conf = self.config.clone();
             egui::ComboBox::from_label("palette")
                 .selected_text(self.palette.clone())
                 .show_ui(ui, |ui| {
@@ -158,6 +159,21 @@ impl App {
                         };
                     }
                 });
+
+            ui.add_space(20.);
+            ui.text_edit_singleline(&mut self.new_palette_name);
+            ui.add_space(10.);
+            if ui.button("save new landmark").clicked() {
+                let landmark = NamedPoint {
+                    point: self.centre,
+                    zoom: self.zoom as _,
+                };
+                conf.named_points
+                    .insert(self.new_palette_name.clone(), landmark);
+                confy::store("mandelbrot-rs", "config", conf.clone()).unwrap();
+                self.config = conf.clone();
+            }
+
             ui.add_space(20.);
             egui::ComboBox::from_label("landmark")
                 .selected_text(if self.landmark.is_empty() {
@@ -172,7 +188,7 @@ impl App {
                             .selectable_value(&mut self.landmark, point_name.into(), point_name)
                             .clicked()
                         {
-                            let point = conf.named_points.get(point_name).unwrap();
+                            let point = self.config.named_points.get(point_name).unwrap();
                             self.centre = point.point;
                             self.zoom = point.zoom as f64;
                             self.refresh_image().unwrap();

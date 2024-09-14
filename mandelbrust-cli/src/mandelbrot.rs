@@ -10,7 +10,7 @@ pub struct Complex {
 
 impl ToString for Complex {
     fn to_string(&self) -> String {
-        format!("{} + {}i", self.re, self.im)
+        format!("{:.2} + {:.2}i", self.re, self.im)
     }
 }
 
