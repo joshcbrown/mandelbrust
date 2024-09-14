@@ -512,7 +512,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mandelbrust-cli"
+name = "mandelbust-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",

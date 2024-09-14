@@ -1,12 +1,12 @@
 [package]
-name = "mandelbrust-gif"
+name = "mandelbust-gif"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mandelbrust-cli.path = "../mandelbrust-cli/"
+mandelbust-cli.path = "../mandelbust-cli/"
 kdam = "0.3.0"
 image.workspace = true
 confy.workspace = true

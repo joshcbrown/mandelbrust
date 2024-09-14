@@ -1802,18 +1802,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "mandelbrust"
+name = "mandelbust"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "confy",
  "eframe",
  "image 0.25.2",
- "mandelbrust-cli",
+ "mandelbust-cli",
 ]
 
 [[package]]
-name = "mandelbrust-cli"
+name = "mandelbust-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1826,13 +1826,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "mandelbrust-gif"
+name = "mandelbust-gif"
 version = "0.1.0"
 dependencies = [
  "confy",
  "image 0.25.2",
  "kdam",
- "mandelbrust-cli",
+ "mandelbust-cli",
 ]
 
 [[package]]

@@ -4,13 +4,14 @@ use eframe::emath::Align;
 use eframe::epaint::ColorImage;
 use eframe::{egui, run_native};
 use image::{ImageBuffer, Rgb};
-use mandelbrust_cli::config::{Configuration, NamedPoint};
-use mandelbrust_cli::mandelbrot::Complex;
-use mandelbrust_cli::opts::{get_intervals, Cli, Commands, PlottingAlgorithm, Resolution};
+use mandelbust_cli::config::{Configuration, NamedPoint};
+use mandelbust_cli::mandelbrot::Complex;
+use mandelbust_cli::opts::{get_intervals, Cli, Commands, PlottingAlgorithm, Resolution};
+use mandelbust_cli::palette::{ColorPalette, ConfigRGB};
 
 pub fn main() -> Result<(), eframe::Error> {
     run_native(
-        "mandelbrot explorer",
+        "mandelbust",
         Default::default(),
         Box::new(|_cc| Box::<App>::default()),
     )
@@ -27,13 +28,22 @@ pub struct App {
     image: Option<ImageBuffer<Rgb<u8>, Vec<u8>>>,
     iterations: usize,
     palette_cycles: usize,
-    new_palette_name: String,
+    new_landmark_name: String,
+    palette_editor: Vec<([u8; 3], f64)>,
 }
 
 impl Default for App {
     fn default() -> Self {
+        let conf: Configuration = confy::load("mandelbrot-rs", "config").unwrap();
+        let palette_editor = conf
+            .get_palette("electric")
+            .unwrap()
+            .color_vals
+            .iter()
+            .map(|p| ([p.red, p.green, p.blue], p.value))
+            .collect();
         Self {
-            config: confy::load("mandelbrot-rs", "config").unwrap(),
+            config: conf.clone(),
             centre: Complex::id(),
             zoom: 8.,
             zoom_multiplier: 2.,
@@ -43,7 +53,8 @@ impl Default for App {
             image: None,
             iterations: 5000,
             palette_cycles: 1,
-            new_palette_name: "".into(),
+            new_landmark_name: "".into(),
+            palette_editor,
         }
     }
 }
@@ -84,7 +95,18 @@ impl App {
         };
         let hue_array = args.get_hue_array()?;
         let (width, height) = args.resolution.to_dimensions();
-        let palette = args.get_palette()?;
+        let palette = ColorPalette {
+            color_vals: self
+                .palette_editor
+                .iter()
+                .map(|&([red, green, blue], value)| ConfigRGB {
+                    red,
+                    green,
+                    blue,
+                    value,
+                })
+                .collect(),
+        };
         self.image = Some(ImageBuffer::from_fn(width as u32, height as u32, |x, y| {
             palette.value(hue_array[x as usize][y as usize])
         }));
@@ -135,6 +157,10 @@ impl App {
                 self.refresh_image().unwrap();
             }
 
+            for (col, _) in self.palette_editor.iter_mut() {
+                ui.color_edit_button_srgb(col);
+            }
+
             ui.add_space(20.);
             ui.label(format!("centre: {}", self.centre.to_string()));
 
@@ -161,7 +187,7 @@ impl App {
                 });
 
             ui.add_space(20.);
-            ui.text_edit_singleline(&mut self.new_palette_name);
+            ui.text_edit_singleline(&mut self.new_landmark_name);
             ui.add_space(10.);
             if ui.button("save new landmark").clicked() {
                 let landmark = NamedPoint {
@@ -169,7 +195,7 @@ impl App {
                     zoom: self.zoom as _,
                 };
                 conf.named_points
-                    .insert(self.new_palette_name.clone(), landmark);
+                    .insert(self.new_landmark_name.clone(), landmark);
                 confy::store("mandelbrot-rs", "config", conf.clone()).unwrap();
                 self.config = conf.clone();
             }

@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["mandelbrust", "mandelbrust-gif", "mandelbrust-cli"]
+members = ["mandelbust", "mandelbust-gif", "mandelbust-cli"]
 
 resolver = "2"
 

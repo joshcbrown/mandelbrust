@@ -1,12 +1,12 @@
 use image::{imageops::resize, DynamicImage, GenericImageView, ImageBuffer};
 use kdam::tqdm;
-use mandelbrust_cli::{
+use mandelbust_cli::{
     config::Configuration,
     opts::{Cli, PlottingAlgorithm},
 };
 
 fn main() {
-    let conf: Configuration = confy::load("mandelbrust", "config").unwrap();
+    let conf: Configuration = confy::load("mandelbust", "config").unwrap();
     let place = conf.get_named_point("circle").unwrap();
     let mut zoom = 8.;
     for i in tqdm!(0..30) {
@@ -14,11 +14,11 @@ fn main() {
             out_file: format!("out/{}.png", i),
             max_iters: 10000,
             bailout: 1e9,
-            resolution: mandelbrust_cli::opts::Resolution::High,
+            resolution: mandelbust_cli::opts::Resolution::High,
             palette: "warm".into(),
             palette_repeats: 50,
             algorithm: PlottingAlgorithm::Smooth,
-            command: mandelbrust_cli::opts::Commands::Centre {
+            command: mandelbust_cli::opts::Commands::Centre {
                 x: place.point.re,
                 y: place.point.im,
                 zoom: zoom as usize,
